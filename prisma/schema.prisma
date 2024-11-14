@@ -21,8 +21,8 @@ model User {
   address             String
   password            String
   accountNumber       String
-  topUpAccountNumber  String
-  bankName            String
+  topUpAccountNumber  String?
+  bankName            String?
   accountName         String
   transactions        Transaction[] @relation("userTransactions")
   topUpTransactions   TopUpTransaction[] @relation("userTopUpTransactions")
