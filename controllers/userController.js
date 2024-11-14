@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
+const axios = require('../lib/axios');
+const { moniepiontUrl, apiKey, apiSecret, bvn, dob, walletName, walletReference } = require('../lib/axios');
+// const axios = require('axios');
 
 const Login = async (req, res) => {
   const { email, password } = req.body;
@@ -24,7 +27,7 @@ const Login = async (req, res) => {
 
     // Generate a JWT token
     const token = jwt.sign({ userId: user.id }, 'your_jwt_secret', { expiresIn: '24h' });
-    const data = {user, token};
+    const data = { user, token };
 
     res.status(200).json({ message: 'Login successful', data: data });
   } catch (error) {
@@ -32,12 +35,11 @@ const Login = async (req, res) => {
   }
 }
 
-
 const SignUp = async (req, res) => {
   const { name, phone, email, address, password } = req.body;
 
   try {
-    if (!name ||!phone ||!email ||!address ||!password) {
+    if (!name || !phone || !email || !address || !password) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
@@ -53,6 +55,39 @@ const SignUp = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Get a Bearer token from sandbox first
+    const response = await axios.post('uth/login', {}, 
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${apiKey}:${apiSecret}`
+        }
+      }
+    );
+
+    const { data } = response.data;
+
+    if (!data.accessToken) {
+      return res.status(500).json({ error: 'Failed to get Bearer token from sandbox', message: data.message });
+    }
+
+    // Set the Bearer token in the response header
+    res.setHeader('Authorization', `Bearer ${data.token}`);
+
+    // Create a wallet for the user
+    const walletResponse = await axios.post('disbursements/wallet', {
+      walletName: walletName,
+      walletReference: walletReference,
+      customerName: name,
+      bvnDetails: {
+        bvn: bvn,
+        bvnDateofBirth: dob
+      },
+      customerEmail: email
+    });
+
+    const { status } = walletResponse;
+
     // Create a new user
     const user = await prisma.user.create({
       data: {
@@ -61,8 +96,13 @@ const SignUp = async (req, res) => {
         email,
         address,
         password: hashedPassword,
+        accountNumber: walletResponse.accountNumber,
+        accountName: walletResponse.accountName,
+        topUpAccountNumber: walletResponse.topUpAccountDetails.accountNumber,
+        bankName: walletResponse.topUpAccountDetails.bankName
       },
     });
+
 
     res.status(201).json({ message: 'User created successfully', data: "Success" });
   } catch (error) {

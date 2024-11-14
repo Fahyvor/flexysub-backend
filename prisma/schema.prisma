@@ -14,10 +14,34 @@ datasource db {
 }
 
 model User {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  name     String
-  phone    String
-  email    String @unique
-  address  String
-  password String
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  name                String
+  phone               String
+  email               String @unique
+  address             String
+  password            String
+  accountNumber       String
+  topUpAccountNumber  String
+  bankName            String
+  accountName         String
+  transactions        Transaction[] @relation("userTransactions")
+  topUpTransactions   TopUpTransaction[] @relation("userTopUpTransactions")
+}
+
+model Transaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount      Float
+  date        DateTime @default(now())
+  description String?
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], name: "userTransactions")
+}
+
+model TopUpTransaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount      Float
+  date        DateTime @default(now())
+  method      String
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], name: "userTopUpTransactions")
 }
