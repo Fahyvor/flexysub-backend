@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const userRoutes = require('./routes/userRoutes');
+const vtuRoutes = require('./routes/vtuRoutes');
 
 app.use(cors())
 
@@ -10,6 +11,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 9000;
 
 app.use('/api/auth', userRoutes);
+app.use('/api/vtu', vtuRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
