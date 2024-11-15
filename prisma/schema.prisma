@@ -24,6 +24,7 @@ model User {
   topUpAccountNumber  String?
   bankName            String?
   accountName         String
+  accountBalance      Int?
   transactions        Transaction[] @relation("userTransactions")
   topUpTransactions   TopUpTransaction[] @relation("userTopUpTransactions")
 }
