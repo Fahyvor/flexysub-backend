@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const axios = require('../lib/axios');
 const { apiKey, apiSecret, bvn, dob, walletName, walletReference, axiosInstance, apiSecretAndKey } = require('../lib/axios');
+require('dotenv').config();
 // const axios = require('axios');
 
 const Login = async (req, res) => {
@@ -26,7 +27,7 @@ const Login = async (req, res) => {
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ userId: user.id }, 'your_jwt_secret', { expiresIn: '24h' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { algorithm: 'HS256', expiresIn: '24h' });
     const data = { user, token };
 
     res.status(200).json({ message: 'Login successful', data: data });
@@ -110,6 +111,7 @@ const SignUp = async (req, res) => {
         password: hashedPassword,
         accountNumber: String(walletResponse.data.responseBody.accountNumber),
         accountName: walletResponse.data.responseBody.accountName,
+        accountBalance: 0,
         // topUpAccountNumber: walletResponse.topUpAccountDetails.accountNumber,
         // bankName: walletResponse.topUpAccountDetails.bankName
       },

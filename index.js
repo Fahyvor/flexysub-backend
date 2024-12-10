@@ -3,6 +3,7 @@ const cors = require('cors');
 const app = express();
 const userRoutes = require('./routes/userRoutes');
 const vtuRoutes = require('./routes/vtuRoutes');
+const electricityRoutes = require('./routes/electricityRoutes');
 
 app.use(cors())
 
@@ -10,8 +11,17 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 9000;
 
+app.use((err, req, res, next) => {
+  if (err.name === 'UnauthorizedError') {
+    res.status(401).send('Invalid token');
+  } else {
+    next(err);
+  }
+});
+
 app.use('/api/auth', userRoutes);
 app.use('/api/vtu', vtuRoutes);
+app.use('/api/electricity', electricityRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });

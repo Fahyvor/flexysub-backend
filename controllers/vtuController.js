@@ -101,11 +101,90 @@ const getDataPlan = async (req, res) => {
 }
 
 const BuyAirtime = async (req, res) => {
+    try {
+        const { phone, value } = req.body;
 
-}
+        // Validate input
+        if (!phone || !value) {
+            return res.status(400).json({ message: "Phone and value are required" });
+        }
+
+        // Login to CVDS
+        const loginToCVDS = await axios.post(`${process.env.CVDS_URL}login`, {
+            username: process.env.CVDS_USERNAME,
+            password: process.env.CVDS_PASSWORD,
+        });
+
+        // Retrieve token
+        const cvdsToken = loginToCVDS.data.token;
+        console.log("CVDS Token:", cvdsToken);
+
+        // Make airtime purchase request
+        const buyAirtimeResponse = await axios.post(
+            `${process.env.CVDS_URL}transactions/airtime`,
+            {
+                phone,
+                value,
+                ported: true,
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${cvdsToken}`,
+                },
+            }
+        );
+
+        // Handle successful airtime purchase
+        if (buyAirtimeResponse.status === 200) {
+            console.log("Airtime Purchase Response:", buyAirtimeResponse.data);
+            return res.status(200).json({
+                // message: buyAirtimeResponse.data.message,
+                data: buyAirtimeResponse.data,
+            });
+        } else {
+            // Handle unexpected status codes
+            return res.status(buyAirtimeResponse.status).json({
+                message: "Unexpected response from airtime API",
+                details: buyAirtimeResponse.data,
+            });
+        }
+    } catch (error) {
+        // Handle errors
+        console.error("Error in BuyAirtime:", error.response?.data || error.message);
+        return res.status(500).json({
+            message: "Failed to recharge airtime",
+            error: error.response?.data || error.message,
+        });
+    }
+};
+
 
 const ConvertAirtimeToCash = async (req, res) => {
+    try {
+        const loginToCVDS = await axios.post(`${process.env.CVDS_URL}login`, {
+            username: process.env.CVDS_USERNAME,
+            password: process.env.CVDS_PASSWORD,
+        });
 
+        // Retrieve token
+        const cvdsToken = loginToCVDS.data.token;
+        console.log("CVDS Token:", cvdsToken);
+
+        const getNumber = await axios.get(`${process.env.CVDS_URL}transactions/airtime2cash`, {
+            headers: {
+                Authorization: `Bearer ${cvdsToken}`,
+            },
+        })
+        if(getNumber.status === 200) {
+            console.log("Number:", getNumber.data);
+        }
+    } catch (error) {
+        console.error("Error in Converting Airtime:", error.response?.data || error.message);
+        return res.status(500).json({
+            message: "Failed to convert airtime",
+            error: error.response?.data || error.message,
+        });
+    }
 }
 
 module.exports={BuyData, BuyAirtime, ConvertAirtimeToCash, getDataPlan}
