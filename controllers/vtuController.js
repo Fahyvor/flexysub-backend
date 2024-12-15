@@ -102,11 +102,30 @@ const getDataPlan = async (req, res) => {
 
 const BuyAirtime = async (req, res) => {
     try {
-        const { phone, value } = req.body;
+        const { phone, network, amount } = req.body;
 
+        // console.log(req.body);
+
+        //generate a request_id that consists of YYYYMMDDHHII and 8 random characters
+        function generateRandomString(length) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        }
+        
+        const date = new Date();
+        const dateString = date.toISOString().slice(0, 19).replace(/[-T:]/g, ''); // YYYYMMDDHHMMSS
+        const randomString = generateRandomString(8);
+        
+        const requestId = `${dateString}${randomString}`;
+        console.log("Request ID:", requestId);
+        
         // Validate input
-        if (!phone || !value) {
-            return res.status(400).json({ message: "Phone and value are required" });
+        if (!phone || !amount) {
+            return res.status(400).json({ message: "Phone and amount are required" });
         }
 
         // Login to CVDS
@@ -116,20 +135,22 @@ const BuyAirtime = async (req, res) => {
         });
 
         // Retrieve token
-        const cvdsToken = loginToCVDS.data.token;
-        console.log("CVDS Token:", cvdsToken);
+        // const cvdsToken = loginToCVDS.data.token;
+        // console.log("CVDS Token:", cvdsToken);
 
         // Make airtime purchase request
         const buyAirtimeResponse = await axios.post(
-            `${process.env.CVDS_URL}transactions/airtime`,
+            `${process.env.VTPASS_URL}pay`,
             {
-                phone,
-                value,
-                ported: true,
+                request_id: requestId,
+                serviceID: network,
+                amount: parseInt(amount),
+                phone: phone
             },
             {
                 headers: {
-                    Authorization: `Bearer ${cvdsToken}`,
+                    'api-key': process.env.VTPASS_API_KEY,
+                    'secret-key': process.env.VTPASS_SECRET_KEY
                 },
             }
         );
@@ -138,7 +159,6 @@ const BuyAirtime = async (req, res) => {
         if (buyAirtimeResponse.status === 200) {
             console.log("Airtime Purchase Response:", buyAirtimeResponse.data);
             return res.status(200).json({
-                // message: buyAirtimeResponse.data.message,
                 data: buyAirtimeResponse.data,
             });
         } else {
@@ -150,7 +170,7 @@ const BuyAirtime = async (req, res) => {
         }
     } catch (error) {
         // Handle errors
-        console.error("Error in BuyAirtime:", error.response?.data || error.message);
+        console.error("Error in BuyAirtime:", error.response?.data || error.message, error);
         return res.status(500).json({
             message: "Failed to recharge airtime",
             error: error.response?.data || error.message,
@@ -158,6 +178,63 @@ const BuyAirtime = async (req, res) => {
     }
 };
 
+// const BuyAirtime = async (req, res) => {
+//     try {
+//         const { phone, value } = req.body;
+
+//         // Validate input
+//         if (!phone || !value) {
+//             return res.status(400).json({ message: "Phone and value are required" });
+//         }
+
+//         // Login to CVDS
+//         const loginToCVDS = await axios.post(`${process.env.CVDS_URL}login`, {
+//             username: process.env.CVDS_USERNAME,
+//             password: process.env.CVDS_PASSWORD,
+//         });
+
+//         // Retrieve token
+//         const cvdsToken = loginToCVDS.data.token;
+//         console.log("CVDS Token:", cvdsToken);
+
+//         // Make airtime purchase request
+//         const buyAirtimeResponse = await axios.post(
+//             `${process.env.CVDS_URL}transactions/airtime`,
+//             {
+//                 phone,
+//                 value,
+//                 ported: true,
+//             },
+//             {
+//                 headers: {
+//                     Authorization: `Bearer ${cvdsToken}`,
+//                 },
+//             }
+//         );
+
+//         // Handle successful airtime purchase
+//         if (buyAirtimeResponse.status === 200) {
+//             console.log("Airtime Purchase Response:", buyAirtimeResponse.data);
+//             return res.status(200).json({
+//                 // message: buyAirtimeResponse.data.message,
+//                 data: buyAirtimeResponse.data,
+//             });
+//         } else {
+//             // Handle unexpected status codes
+//             return res.status(buyAirtimeResponse.status).json({
+//                 message: "Unexpected response from airtime API",
+//                 details: buyAirtimeResponse.data,
+//             });
+//         }
+//     } catch (error) {
+//         // Handle errors
+//         console.error("Error in BuyAirtime:", error.response?.data || error.message);
+//         return res.status(500).json({
+//             message: "Failed to recharge airtime",
+//             error: error.response?.data || error.message,
+//         });
+//     }
+// };
 
 const ConvertAirtimeToCash = async (req, res) => {
     try {
