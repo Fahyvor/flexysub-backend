@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const moment = require('moment-timezone');
 
 const BuyData = async (req, res) => {
     try {
@@ -64,6 +65,53 @@ const BuyData = async (req, res) => {
     }
 };
 
+// const getDataPlan = async (req, res) => {
+//     try {
+//         const { plan } = req.params;
+
+//         // Fetch all data plans
+//         const dataPlans = await axios.get(`${process.env.VTPASS_URL}service-variations?serviceID=${plan}`, {
+//             headers: {
+//                 'api-key': process.env.VTPASS_API_KEY,
+//                 'secret-key': process.env.VTPASS_PUBLIC_KEY
+//             },
+//         });
+
+//         // Log the full response
+//         console.log("Full Response:", JSON.stringify(dataPlans.data.content, null, 2));
+
+//         const actualData = dataPlans.data.content.varations;
+//         console.log("Actual Data:", actualData);
+
+//         // Ensure content is an array
+//         const content = Array.isArray(dataPlans.data.content.varations) ? dataPlans.data.content.varations : actualData;
+
+//         // Map names and calculate amounts
+//         const newData = content.map(plan => plan.name || "No name provided");
+//         const dataAmount = content.map(plan => {
+//             const price = parseFloat(plan.variation_amount || 0); // Fallback for empty amounts
+//             return price + 50; // Add custom margin
+//         });
+
+//         console.log("Data Plans Name:", newData);
+//         console.log("Data Plans Amount:", dataAmount);
+
+//         res.status(200).json({
+//             message: "Successful",
+//             data: newData,
+//             dataAmount: dataAmount
+//         });
+
+//     } catch (error) {
+//         // Handle errors and log them
+//         console.error("Error:", error.response?.data || error.message);
+//         return res.status(500).json({
+//             message: "Failed to fetch data plans",
+//             error: error.response?.data || error.message
+//         });
+//     }
+// };
+
 const getDataPlan = async (req, res) => {
     try {
          // Login to CVDS
@@ -86,7 +134,7 @@ const getDataPlan = async (req, res) => {
 
         const dataAmount = dataPlans.data.data.map(plan => {
             const price = parseFloat(plan.api_price); 
-            return price + 25;
+            return price + 34;
         });
 
         console.log("Data Plans Amount:", dataAmount);
@@ -104,9 +152,7 @@ const BuyAirtime = async (req, res) => {
     try {
         const { phone, network, amount } = req.body;
 
-        // console.log(req.body);
-
-        //generate a request_id that consists of YYYYMMDDHHII and 8 random characters
+        // Generate a request_id that consists of YYYYMMDDHHMMSS and 8 random characters
         function generateRandomString(length) {
             const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             let result = '';
@@ -116,11 +162,15 @@ const BuyAirtime = async (req, res) => {
             return result;
         }
         
-        const date = new Date();
-        const dateString = date.toISOString().slice(0, 19).replace(/[-T:]/g, ''); // YYYYMMDDHHMMSS
-        const randomString = generateRandomString(8);
+        function getGMTPlus1Timestamp() {
+            // Get the current time in GMT+1 timezone
+            const gmtPlus1Time = moment.tz("Africa/Lagos"); // Nigeria is in GMT+1
         
-        const requestId = `${dateString}${randomString}`;
+            // Format as YYYYMMDDHHMMSS
+            return gmtPlus1Time.format("YYYYMMDDHHmmss");
+        }                   
+        
+        const requestId = `${getGMTPlus1Timestamp()}${generateRandomString(8)}`;
         console.log("Request ID:", requestId);
         
         // Validate input
