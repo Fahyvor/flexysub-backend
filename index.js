@@ -4,6 +4,7 @@ const app = express();
 const userRoutes = require('./routes/userRoutes');
 const vtuRoutes = require('./routes/vtuRoutes');
 const electricityRoutes = require('./routes/electricityRoutes');
+const cableRoutes = require('./routes/cableRoutes');
 
 app.use(cors())
 
@@ -21,6 +22,7 @@ app.use((err, req, res, next) => {
 
 app.use('/api/auth', userRoutes);
 app.use('/api/vtu', vtuRoutes);
+app.use('/api/cable', cableRoutes);
 app.use('/api/electricity', electricityRoutes);
 
 app.use((req, res) => {

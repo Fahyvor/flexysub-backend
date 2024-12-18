@@ -130,15 +130,21 @@ const getDataPlan = async (req, res) => {
         });
 
         const newData = dataPlans.data.data.map(plan => plan.name);
-        console.log("Normal Rate", dataPlans.data.data.map(plan => plan.api_price ));
+        console.log("Normal Rate", dataPlans.data.data.map(plan => plan.api_price));
 
         const dataAmount = dataPlans.data.data.map(plan => {
-            const price = parseFloat(plan.api_price); 
-            return price + 34;
+            const price = parseFloat(plan.api_price);
+            
+            // Extract the GB value using a regular expression
+            const match = plan.name.match(/(\d+(\.\d+)?)\s?GB/);
+            const dataGb = match ? parseFloat(match[1]) : 0; // Default to 0 if no match
+
+            // Add 34 for every 1GB of data
+            const additionalCost = dataGb * 34;
+            return price + additionalCost;
         });
 
         console.log("Data Plans Amount:", dataAmount);
-
         console.log("Data Plans Name:", newData);
         res.status(200).json({message: "Successful", data: newData, dataAmount: dataAmount});
 
