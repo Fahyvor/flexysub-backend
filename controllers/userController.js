@@ -40,7 +40,7 @@ const SignUp = async (req, res) => {
   const { name, phone, email, address, password } = req.body;
 
   try {
-    if (!name || !phone || !email || !address || !password) {
+    if (!name || !phone || !email || !password) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     

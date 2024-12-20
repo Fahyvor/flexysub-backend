@@ -18,7 +18,6 @@ model User {
   name                String
   phone               String
   email               String @unique
-  address             String
   password            String
   accountNumber       String
   topUpAccountNumber  String?
