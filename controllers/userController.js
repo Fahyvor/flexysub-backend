@@ -11,7 +11,7 @@ const Login = async (req, res) => {
 
   try {
     // Find the user by email
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { email },
     });
 
@@ -102,7 +102,7 @@ const SignUp = async (req, res) => {
     console.log(walletResponse.data)
 
     // Create a new user
-    const user = await prisma.user.create({
+    const user = await prisma.User.create({
       data: {
         name,
         phone,
@@ -127,7 +127,7 @@ const SignUp = async (req, res) => {
 
 const GetAllUsers = async (req, res) => {
   try {
-    const users = await prisma.user.findMany();
+    const users = await prisma.User.findMany();
 
     if (!users || users.length === 0) {
       return res.status(200).json({ message: 'No user found', status: "Success" });
