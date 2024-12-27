@@ -37,7 +37,7 @@ const Login = async (req, res) => {
 }
 
 const SignUp = async (req, res) => {
-  const { name, phone, email, address, password } = req.body;
+  const { name, phone, email, password } = req.body;
 
   try {
     if (!name || !phone || !email || !password) {
@@ -107,7 +107,6 @@ const SignUp = async (req, res) => {
         name,
         phone,
         email,
-        address,
         password: hashedPassword,
         accountNumber: String(walletResponse.data.responseBody.accountNumber),
         accountName: walletResponse.data.responseBody.accountName,
