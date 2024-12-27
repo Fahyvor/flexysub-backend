@@ -41,7 +41,7 @@ const BuyData = async (req, res) => {
             return res.status(404).json({ error: 'No matching plan found.' });
         }
 
-        // Buy data
+        // Buy data from Connect Value Data
         const buyData = await axios.post(`${process.env.CVDS_URL}transactions/data`, {
             network: network,
             mobile_number: number,
