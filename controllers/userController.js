@@ -126,7 +126,7 @@ const SignUp = async (req, res) => {
 
 const GetAllUsers = async (req, res) => {
   try {
-    const users = await prisma.User.findMany();
+    const users = await prisma.user.findMany({});
 
     if (!users || users.length === 0) {
       return res.status(200).json({ message: 'No user found', status: "Success" });
