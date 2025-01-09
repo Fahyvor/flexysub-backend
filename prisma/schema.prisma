@@ -15,15 +15,16 @@ datasource db {
 
 model User {
   id                  String   @id @default(auto()) @map("_id") @db.ObjectId
-  name                String
+  firstName           String
+  lastName           String
   phone               String
   email               String @unique
   password            String
   accountNumber       String
-  topUpAccountNumber  String?
-  bankName            String?
+  bankName            String
+  bankId              String
   accountName         String
-  accountBalance      Int?
+  accountBalance      Float @default(0)
   transactions        Transaction[] @relation("userTransactions")
   topUpTransactions   TopUpTransaction[] @relation("userTopUpTransactions")
 }
