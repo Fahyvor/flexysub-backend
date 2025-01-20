@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 // const axios = require('../lib/axios');
 const axios = require('axios')
-const { walletName, walletReference, axiosInstance, billStackUrl, bank } = require('../lib/axios');
+const { bvn,  address, dob, walletReference, axiosInstance, strowalletUrl, payvesselUrl, bank, publicKey } = require('../lib/axios');
 require('dotenv').config();
 // const axios = require('axios');
 
@@ -61,25 +61,62 @@ const SignUp = async (req, res) => {
 
     // Creating Virtual Account
     console.log('Email in Axios Payload:', userData.email);
-    const response = await axios.post(`${billStackUrl}thirdparty/generateVirtualAccount`, {
-      email: userData.email,
-      reference,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      phone: userData.phone,
-      bank: bank,
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BILLSTACK_SECRET_KEY}`,
-      },
-    });
+//     try {
+      
+//       const response = await axios.post(`${payvesselUrl}external/request/customerReservedAccount/`, {
+//         email,
+//         name: firstName + ' ' + lastName,
+//         phoneNumber: phone,
+//         bankcode: [process.env.BANK_CODE],
+//         businessid: process.env.BUSINESS_ID,
+//         bvn: process.env.BVN,
+//         nin: process.env.NIN,
+//         accountType: process.env.ACCOUNT_TYPE,
+//       },
+//       {
+//         headers: {
+//           'api-key': 'PVKEY-8U0ETGN3KX8POFZ303RKR16YQ1YT4ZB7',
+//           'api-secret': 'Bearer PVSECRET-Y9CLMBR3NE106LXVQD1EJ3RYHO4BDG7BMIOIDAMI8JWYP75YVHK6KKWBJRY3E1Q9',
+//           'Content-Type': 'application/json'
+//         }
+//       }
+//     );
+//     console.log('First API Response:', response.data);
+//     } catch (error) {
+//       if (axios.isAxiosError(error)) {
+//         console.error('Axios Error:', {
+//           message: error.message,
+//           code: error.code,
+//           responseStatus: error.response?.status,
+//           responseStatusText: error.response?.statusText,
+//           responseData: error.response?.data
+//         });   
+//       } else {
+//         console.error('Unexpected Error:', error);console.log('Login Request:', req.body);
+// console.log('User Data:', user);
+// console.log('Generated Token:', token);
+// console.log('Login Response:', { message: 'Login successful', data: data });
 
-    console.log('Third-Party API Response:', response.data);
+// console.log('Sign Up Request:', req.body);
+// console.log('User Data:', userData);
+// console.log('Hashed Password:', hashedPassword);
+// console.log('Virtual Account Response:', response.data);
+// console.log('Created User:', user);
+
+// console.log('Verify User Request:', req.body);
+// console.log('Customer Response:', response.data);
+
+// console.log('Get All Users Request:', req.query);
+// console.log('Users Response:', users);
+//       }   
+//     }
+
+
+//     console.log('Third-Party API Response:', response.data);
 
     // Create a new user
-    const { account_number, account_name, bank_name, bank_id, account_balance } = response.data;
+    // const { account_number, account_name, bank_name, bank_id, account_balance } = response.data;
+    // const { accountNumber, accountName, bankName, trackingReference, accountBalance, account_type } = response.data;
 
     const user = await prisma.user.create({
       data: {
@@ -88,11 +125,12 @@ const SignUp = async (req, res) => {
         phone,
         email,
         password: hashedPassword,
-        accountNumber: account_number,
-        accountName: account_name,
-        bankName: bank_name,
-        bankId: bank_id,
-        accountBalance: account_balance || 0,
+        // accountNumber: accountNumber,
+        // accountName: accountName,
+        // bankName: bankName,
+        // trackingReference: trackingReference,
+        // accountBalance: accountBalance || 0,
+        // accountType: account_type,
       },
     });
 
