@@ -33,9 +33,49 @@ const Login = async (req, res) => {
 
     res.status(200).json({ message: 'Login successful', data: data });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: 'Login failed', details: error.message });
   }
 }
+
+// const SignUp = async (req, res) => {
+//   const { firstName, lastName, phone, email, password } = req.body;
+
+//   console.log('Destructured Fields:', { firstName, lastName, phone, email, password });
+
+//   try {
+//     const userData = req.body;
+//     console.log('Request Body:', userData);
+
+//     if (!firstName || !lastName || !phone || !email || !password) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     // Check if the email already exists
+//     const existingUser = await prisma.user.findUnique({ where: { email } });
+//     if (existingUser) {
+//       return res.status(400).json({ error: 'Email already in use' });
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create a new user
+//     const user = await prisma.user.create({
+//       data: {
+//         firstName,
+//         lastName,
+//         phone,
+//         email,
+//         password: hashedPassword,
+//       },
+//     });
+
+//     res.status(201).json({ message: 'User created successfully', data: user });
+//   } catch (error) {
+//     console.error('Error:', error);
+//     res.status(400).json({ error: 'User creation failed', message: error.message || 'An unknown error occurred' });
+//   }
+// };
 
 const SignUp = async (req, res) => {
   const { firstName, lastName, phone, email, password } = req.body;
@@ -61,62 +101,50 @@ const SignUp = async (req, res) => {
 
     // Creating Virtual Account
     console.log('Email in Axios Payload:', userData.email);
-//     try {
-      
-//       const response = await axios.post(`${payvesselUrl}external/request/customerReservedAccount/`, {
-//         email,
-//         name: firstName + ' ' + lastName,
-//         phoneNumber: phone,
-//         bankcode: [process.env.BANK_CODE],
-//         businessid: process.env.BUSINESS_ID,
-//         bvn: process.env.BVN,
-//         nin: process.env.NIN,
-//         accountType: process.env.ACCOUNT_TYPE,
-//       },
-//       {
-//         headers: {
-//           'api-key': 'PVKEY-8U0ETGN3KX8POFZ303RKR16YQ1YT4ZB7',
-//           'api-secret': 'Bearer PVSECRET-Y9CLMBR3NE106LXVQD1EJ3RYHO4BDG7BMIOIDAMI8JWYP75YVHK6KKWBJRY3E1Q9',
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-//     console.log('First API Response:', response.data);
-//     } catch (error) {
-//       if (axios.isAxiosError(error)) {
-//         console.error('Axios Error:', {
-//           message: error.message,
-//           code: error.code,
-//           responseStatus: error.response?.status,
-//           responseStatusText: error.response?.statusText,
-//           responseData: error.response?.data
-//         });   
-//       } else {
-//         console.error('Unexpected Error:', error);console.log('Login Request:', req.body);
-// console.log('User Data:', user);
-// console.log('Generated Token:', token);
-// console.log('Login Response:', { message: 'Login successful', data: data });
+    let response;
+    try {
+      response = await axios.post(
+        `${payvesselUrl}external/request/customerReservedAccount/`,
+        {
+          email,
+          name: firstName + ' ' + lastName,
+          phoneNumber: phone,
+          bankcode: [process.env.BANK_CODE],
+          businessid: process.env.BUSINESS_ID,
+          // bvn: process.env.BVN,
+          nin: process.env.NIN,
+          accountType: process.env.ACCOUNT_TYPE,
+        },
+        {
+          headers: {
+            'api-key': `${process.env.PAYVESSEL_KEY}`,
+            'api-secret': `Bearer ${process.env.PAYVESSEL_SECRET}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Axios Error:', {
+          message: error.message,
+          code: error.code,
+          responseStatus: error.response?.status,
+          responseStatusText: error.response?.statusText,
+          responseData: error.response?.data,
+        });
+      } else {
+        console.error('Unexpected Error:', error);
+      }
+    }
 
-// console.log('Sign Up Request:', req.body);
-// console.log('User Data:', userData);
-// console.log('Hashed Password:', hashedPassword);
-// console.log('Virtual Account Response:', response.data);
-// console.log('Created User:', user);
+    if (!response) {
+      return res.status(400).json({ error: 'Failed to create virtual account' });
+    }
 
-// console.log('Verify User Request:', req.body);
-// console.log('Customer Response:', response.data);
+    console.log('Third-Party API Response:', response.data);
 
-// console.log('Get All Users Request:', req.query);
-// console.log('Users Response:', users);
-//       }   
-//     }
-
-
-//     console.log('Third-Party API Response:', response.data);
-
-    // Create a new user
-    // const { account_number, account_name, bank_name, bank_id, account_balance } = response.data;
-    // const { accountNumber, accountName, bankName, trackingReference, accountBalance, account_type } = response.data;
+    const { account_number, account_name, bank_name, bank_id, account_balance } = response.data;
+    const { accountNumber, accountName, bankName, trackingReference, accountBalance, account_type } = response.data;
 
     const user = await prisma.user.create({
       data: {
@@ -176,9 +204,112 @@ const GetAllUsers = async (req, res) => {
   }
 }
 
+//Update User Data
+const UpdateUserData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, phone, email } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id: parseInt(id) },
+      data: {
+        firstName,
+        lastName,
+        phone,
+        email,
+        password,
+      },
+    });
+
+    if(!user) {
+      return res.status(400).json({ message: 'User not found', status: "Failed" });
+    }
+
+    res.status(200).json({ message: 'User updated successfully', data: user });
+  }  catch (error) {
+    res.status(500).json({ error: 'Failed to update user', message: error.message });
+  }
+}
+
+//Delete User
+const DeleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.delete({
+      where: { id: id },
+    });
+
+    if(!user) {
+      return res.status(400).json({ message: 'User not found', status: "Failed" });
+    }
+
+    res.status(200).json({ message: 'User deleted successfully', data: user });
+  }  catch (error) {
+    console.log(error);
+    res.status(500).json({ error: 'Failed to delete user', message: error.message });
+  }
+}
+
+const ResetPassword = async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const body = await req.json();
+    const saltRounds = 10;
+
+    const { email } = body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email address is required" });
+    }
+
+    const sqlFindUser = "SELECT * FROM users WHERE email = ?";
+    const [findUser] = await connection.query(sqlFindUser, [email]);
+
+    if (!findUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newPassword = Math.random().toString(36).slice(2, 10);
+
+    // Hash the new password
+    const hash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update the password in the database
+    const sqlUpdatePassword = "UPDATE users SET password = ? WHERE email = ?";
+    await connection.query(sqlUpdatePassword, [hash, email]);
+
+    console.log("New Password Hash:", hash);
+    console.log("New Password:", newPassword);
+
+    // Send New password to user's mail
+    const mailOptions = {
+      from: "flexysubsupport@flexysub.ng",
+      to: email,
+      subject: "Your New FlexySub Password",
+      text: `Your new password is: ${newPassword}`,
+    };
+
+    const sentMail = await transporter.sendMail(mailOptions);
+    console.log("Email Sent:", sentMail);
+
+    return res.status(200).json({
+      message: "Password reset and sent successfully to your mail, Please check your mail",
+    });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res.status(500).json({ message: "Error resetting password" });
+  }
+}
+
+
+
 module.exports = {
   Login,
   SignUp,
   GetAllUsers,
   VerifyUser,
+  UpdateUserData,
+  DeleteUser,
+  ResetPassword,
 }
