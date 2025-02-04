@@ -111,7 +111,6 @@ const SignUp = async (req, res) => {
           phoneNumber: phone,
           bankcode: [process.env.BANK_CODE],
           businessid: process.env.BUSINESS_ID,
-          // bvn: process.env.BVN,
           nin: process.env.NIN,
           accountType: process.env.ACCOUNT_TYPE,
         },
@@ -141,10 +140,13 @@ const SignUp = async (req, res) => {
       return res.status(400).json({ error: 'Failed to create virtual account' });
     }
 
-    console.log('Third-Party API Response:', response.data);
+    console.log('Third-Party API Response:', response.data.banks);
 
-    const { account_number, account_name, bank_name, bank_id, account_balance } = response.data;
-    const { accountNumber, accountName, bankName, trackingReference, accountBalance, account_type } = response.data;
+    // const { accountNumber, accountName, bankName, trackingReference, accountBalance, account_type } = response.data.banks;
+
+    const bankDetails = response.data.banks[0]; // Assuming you want the first bank details from the array
+
+    console.log('Third-Party API Response:', bankDetails);
 
     const user = await prisma.user.create({
       data: {
@@ -153,16 +155,17 @@ const SignUp = async (req, res) => {
         phone,
         email,
         password: hashedPassword,
-        // accountNumber: accountNumber,
-        // accountName: accountName,
-        // bankName: bankName,
-        // trackingReference: trackingReference,
-        // accountBalance: accountBalance || 0,
-        // accountType: account_type,
+        accountNumber: bankDetails.accountNumber,
+        accountName: bankDetails.accountName,
+        bankName: bankDetails.bankName,
+        trackingReference: bankDetails.trackingReference,
+        accountBalance: bankDetails.accountBalance || 0,
+        accountType: bankDetails.account_type,
       },
     });
 
     res.status(201).json({ message: 'User created successfully', data: user });
+  
   } catch (error) {
     console.error('Error:', error);
     res.status(400).json({ error: 'User creation failed', message: error.message });
