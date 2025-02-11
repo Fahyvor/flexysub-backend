@@ -309,6 +309,24 @@ const ResetPassword = async (req, res) => {
 //Write a controller to update user's account balance
 const UpdateAccountBalance = async (req, res) => {
   try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized" });
+    };
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const admin = await prisma.user.findUnique({ where: { id: decoded.userId } });
+
+    if (!admin) {
+      return res.status(400).json({ message: 'Admin not found', status: "Failed" });
+    }
+
+    if(admin.role !== 'admin') {
+      return res.status(401).json({ message: 'Unauthorized, You cannot fund an account', status: "Failed" });
+    }
+
     const { amount, accountNumber } = req.body;
     console.log(req.body);
 
