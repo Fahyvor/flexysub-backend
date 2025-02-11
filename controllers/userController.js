@@ -5,6 +5,7 @@ const prisma = require('../lib/prisma');
 const axios = require('axios')
 const { bvn,  address, dob, walletReference, axiosInstance, strowalletUrl, payvesselUrl, bank, publicKey } = require('../lib/axios');
 require('dotenv').config();
+const nodemailer = require('nodemailer');
 // const axios = require('axios');
 
 const Login = async (req, res) => {
@@ -305,6 +306,65 @@ const ResetPassword = async (req, res) => {
   }
 }
 
+//Write a controller to update user's account balance
+const UpdateAccountBalance = async (req, res) => {
+  try {
+    const { amount, accountNumber } = req.body;
+    console.log(req.body);
+
+    if (!amount) {
+      return res.status(400).json({ message: "Amount to add is required" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { accountNumber },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found", status: "Failed" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        accountBalance: {
+          increment: amount,
+        },
+      },
+    });
+
+    res.status(200).json({ message: "Account balance updated successfully", data: updatedUser });
+  } catch (error) {
+    console.error("Error updating account balance:", error);
+    return res.status(500).json({ message: "Error updating account balance" });
+  }
+}
+
+//Get user and get the user id from the jwt
+const getUser = async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+
+  console.log("Received Token:", token); // Debugging
+
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+
+    if (!user) {
+      return res.status(400).json({ message: 'User not found', status: "Failed" });
+    }
+
+    res.status(200).json(user);
+    return decoded.userId;
+  } catch (error) {
+    console.error("Error Getting Single User", error.message); // Debugging
+
+    throw error;
+  }
+};
 
 
 module.exports = {
@@ -315,4 +375,6 @@ module.exports = {
   UpdateUserData,
   DeleteUser,
   ResetPassword,
+  UpdateAccountBalance,
+  getUser,
 }

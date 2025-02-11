@@ -20,13 +20,14 @@ model User {
   phone               String
   email               String @unique
   password            String
-  accountNumber       String?
+  accountNumber       String @unique
   bankName            String?
   bankId              String?
   accountName         String?
   accountBalance      Float? @default(0)
   trackingReference   String?
   accountType         String?
+  role                String? @default("user")
   transactions        Transaction[] @relation("userTransactions")
   topUpTransactions   TopUpTransaction[] @relation("userTopUpTransactions")
 }

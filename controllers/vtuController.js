@@ -1,10 +1,21 @@
 const express = require('express');
 const axios = require('axios');
 const moment = require('moment-timezone');
+const prisma = require('../lib/prisma');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const BuyData = async (req, res) => {
     try {
         const { network, number, name, type, duration } = req.body;
+
+        // const token = req.headers.authorization?.split(" ")[1];
+
+        // const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+
+        // if(user.accountBalance < amount) {
+        //     return res.status(400).json({ error: 'Insufficient funds' });
+        // }
 
         // Validate request body
         if (!network || !number || !name || !type || !duration) {
@@ -112,6 +123,12 @@ const BuyData = async (req, res) => {
 //     }
 // };
 
+        /**
+         * Retrieves all data plans from CVDS
+         * @param {object} req - Request object
+         * @param {object} res - Response object
+         * @returns {object} - Response with data plans name and amount
+         */
 const getDataPlan = async (req, res) => {
     try {
          // Login to CVDS
@@ -156,7 +173,22 @@ const getDataPlan = async (req, res) => {
 
 const BuyAirtime = async (req, res) => {
     try {
+        const token = req.headers.authorization?.split(" ")[1];
+        console.log(token);
+
+        if(!token) {
+            return res.status(401).json({ error: 'jwt must be provided' });
+        }
+
         const { phone, network, amount } = req.body;
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+
+        if(user.accountBalance < amount) {
+            return res.status(400).json({ error: 'Insufficient funds' });
+        }
 
         // Generate a request_id that consists of YYYYMMDDHHMMSS and 8 random characters
         function generateRandomString(length) {
@@ -184,16 +216,6 @@ const BuyAirtime = async (req, res) => {
             return res.status(400).json({ message: "Phone and amount are required" });
         }
 
-        // Login to CVDS
-        const loginToCVDS = await axios.post(`${process.env.CVDS_URL}login`, {
-            username: process.env.CVDS_USERNAME,
-            password: process.env.CVDS_PASSWORD,
-        });
-
-        // Retrieve token
-        // const cvdsToken = loginToCVDS.data.token;
-        // console.log("CVDS Token:", cvdsToken);
-
         // Make airtime purchase request
         const buyAirtimeResponse = await axios.post(
             `${process.env.VTPASS_URL}pay`,
@@ -211,13 +233,29 @@ const BuyAirtime = async (req, res) => {
             }
         );
 
+        // Update user account balance
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                accountBalance: user.accountBalance - amount
+            }
+        });
+
         // Handle successful airtime purchase
         if (buyAirtimeResponse.status === 200) {
             console.log("Airtime Purchase Response:", buyAirtimeResponse.data);
             return res.status(200).json({
                 data: buyAirtimeResponse.data,
             });
-        } else {
+        } else if (buyAirtimeResponse.response_description == "TRANSACTION FAILED") {
+            // Handle transaction failure
+            console.log("Airtime Purchase Failed:", buyAirtimeResponse.data);
+            return res.status(400).json({
+                message: "Airtime purchase failed",
+                details: buyAirtimeResponse.data,
+            });
+        }
+        else {
             // Handle unexpected status codes
             return res.status(buyAirtimeResponse.status).json({
                 message: "Unexpected response from airtime API",
@@ -320,4 +358,48 @@ const ConvertAirtimeToCash = async (req, res) => {
     }
 }
 
-module.exports={BuyData, BuyAirtime, ConvertAirtimeToCash, getDataPlan}
+//Send Admin a message that I have funded my account
+const sendAdminMessage = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(" ")[1];
+        console.log(token);
+
+        if(!token) {
+            return res.status(401).json({ error: 'jwt must be provided' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+
+        // Send email to admin
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.MAIL_ADDRESS,
+                pass: process.env.MAIL_PASSWORD,
+            },
+        });
+
+        const mailOptions = {
+            from: process.env.MAIL_ADDRESS,
+            to: "ebukadike5@gmail.com",
+            subject: 'Account Funded',
+            text: `A user has funded their account. with account Number: ${user.accountNumber}`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending email:', error);
+                return res.status(500).json({ message: 'Failed to send email' });
+            } else {
+                console.log('Email sent:', info.response);
+                return res.status(200).json({ message: 'Please hold on while we fund your account' });
+            }
+        })   
+    } catch (error) {
+        console.error("Error in sending Admin Message:", error.response?.data || error.message);
+    }
+}
+
+module.exports={BuyData, BuyAirtime, ConvertAirtimeToCash, getDataPlan, sendAdminMessage}
